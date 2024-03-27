@@ -185,3 +185,36 @@ And again, she will have full access -
 
 KUBECONFIG=./wonderwoman-clustersuperheroes.config kubectl get nodes
 
+
+# Creating a watch only RBAC group
+We'll create a ClusterRole that can only read resources with the verbs list,get,watch -
+
+kubectl create clusterrole cluster-watcher --verb=list,get,watch --resource='*'
+
+We'll create our binding and our cluster-viewers group at the same time -
+
+kubectl create clusterrolebinding cluster-watcher --clusterrole=cluster-watcher --group=cluster-watchers
+
+If we check the auth against a user called uatu in this group, we no longer have full access like before -
+
+kubectl auth can-i '*' '*' --as-group="cluster-watchers" --as="uatu"
+
+However if we check, we can observe -
+
+kubectl auth can-i 'list' '*' --as-group="cluster-watchers" --as="uatu"
+
+Let's create a KUBECONFIG file to test this for the uatu user -
+
+./kubeconfig_creator.sh -u uatu -g cluster-watchers
+
+If we run a get nodes, this will work -
+
+KUBECONFIG=./uatu-clusterwatchers.config kubectl get nodes
+
+We can also query pods -
+
+KUBECONFIG=./uatu-clusterwatchers.config kubectl get pods
+
+However, if we try to create something as this user it will fail -
+
+KUBECONFIG=./uatu-clusterwatchers.config kubectl run nginx --image=nginx
