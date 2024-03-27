@@ -151,3 +151,37 @@ KUBECONFIG=./batman-clustersuperheroes.config kubectl run nginx --image=nginx
 
 KUBECONFIG=./batman-clustersuperheroes.config kubectl delete pod/nginx --now
 
+
+# Automating an RBAC Kubeconfig file
+We're going to setup a convenient tool for automating kubeconfig configurations, first install prerequisites -
+
+apt update && apt install -y git jq openssl
+
+We'll clone the project -
+
+git clone https://github.com/spurin/kubeconfig-creator.git
+
+Change into the project directory -
+
+cd kubeconfig-creator
+
+And we'll create another user similar to batman, this time we'll create superman -
+
+./kubeconfig_creator.sh -u superman -g cluster-superheroes
+
+And because superman is also part of the cluster-superheroes group, we can execute commands as if we are a super user -
+
+KUBECONFIG=./superman-clustersuperheroes.config kubectl get nodes
+
+We'll create another user, this time we'll create wonder-woman -
+
+./kubeconfig_creator.sh -u wonder-woman -g cluster-superheroes
+
+And again, she will have full access -
+
+KUBECONFIG=./wonderwoman-clustersuperheroes.config kubectl get nodes
+
+And again, she will have full access -
+
+KUBECONFIG=./wonderwoman-clustersuperheroes.config kubectl get nodes
+
