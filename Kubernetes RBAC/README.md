@@ -252,3 +252,44 @@ But if we try and access secrets, it will fail -
 
 KUBECONFIG=./deadpool.config kubectl get secrets
 
+
+# Using Roles and RoleBindings
+Let's switch to Roles and RoleBindings which are a namespaced resource, first we'll create a namespace called gryffindor -
+
+kubectl create namespace gryffindor
+
+We'll create a role, in this new namespace with full access -
+
+kubectl -n gryffindor create role gryffindor-admin --verb='*' --resource='*'
+
+And we'll create a RoleBinding and specify our group -
+
+kubectl -n gryffindor create rolebinding gryffindor-admin --role=gryffindor-admin --group=gryffindor-admins
+
+If we check our auth against the group, we'll be rejected if we don't specify a namespace, however, if we do it will work as expected -
+
+kubectl auth can-i '*' '*' --as-group="gryffindor-admins" --as="harry"
+
+kubectl -n gryffindor auth can-i '*' '*' --as-group="gryffindor-admins" --as="harry"
+
+Let's create a kubeconfig file to check this as well, we'll use our convenient tool to do so and we'll set the namespace as we execute -
+
+./kubeconfig_creator.sh -u harry -g gryffindor-admins -n gryffindor
+
+If we check our configuration file, it has a namespace set -
+
+cat harry-gryffindoradmins.config
+
+If we try and access anything outside of a namespace it will fail -
+
+KUBECONFIG=./harry-gryffindoradmins.config kubectl get nodes
+
+If we try and access pods in the default namespace, this will also fail -
+
+KUBECONFIG=./harry-gryffindoradmins.config kubectl -n default get pods
+
+However, if we access resources in the gryffindor namespace, it will succeed -
+
+KUBECONFIG=./harry-gryffindoradmins.config kubectl get pods
+
+
