@@ -218,3 +218,37 @@ KUBECONFIG=./uatu-clusterwatchers.config kubectl get pods
 However, if we try to create something as this user it will fail -
 
 KUBECONFIG=./uatu-clusterwatchers.config kubectl run nginx --image=nginx
+
+# Creating an RBAC managed user
+All of our examples so far have been against wildcard ClusterRoles and Verbs, and against groups. Let's try this out for a standalone user, we'll create a ClusterRole as a pod manager with the verbs list,get,create,delete and the resource as pods -
+
+kubectl create clusterrole cluster-pod-manager --verb=list,get,create,delete --resource='pods'
+
+We'll create a ClusterRoleBinding which we'll use to bind to our ClusterRole and a user called deadpool -
+
+kubectl create clusterrolebinding cluster-pod-manager --clusterrole=cluster-pod-manager --user=deadpool
+
+If we check with auth can -i list * we wont be able to do so as deadpool -
+
+kubectl auth can-i 'list' '*' --as="deadpool"
+
+However, if we check against pods, this will be permitted -
+
+kubectl auth can-i 'list' 'pods' --as="deadpool"
+
+If we check the ClusterRoleBindings output, we'll see deadpool as a user at the bottom -
+
+kubectl get clusterrolebindings -o wide
+
+Let's create a KUBECONFIG file again, this time we wont use the group, just the user and observe the output, there will be no O entry as the subject line -
+
+./kubeconfig_creator.sh -u deadpool
+
+If we try to access pods as this user, it will work -
+
+KUBECONFIG=./deadpool.config kubectl get pods
+
+But if we try and access secrets, it will fail -
+
+KUBECONFIG=./deadpool.config kubectl get secrets
+
