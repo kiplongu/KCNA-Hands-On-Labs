@@ -109,3 +109,45 @@ kubectl get pods -o wide
 For now, remove this pod -
 
 kubectl delete pod/nginx --now
+
+
+# nodeSelector (Further Study)
+An alternative approach is the use of nodeSelector which makes use of known labels, to select a node. If you run a describe on the worker-1 node you'll see the labels section at the top -
+
+kubectl describe node/worker-1 | more
+
+We will make use of the label kubernetes.io/hostname=worker-1 to target a node, update the yaml as follows -
+
+cat <<EOF > nginx_scheduler.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: worker-1
+  containers:
+  - image: nginx
+    name: nginx
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+EOF
+
+Apply this update -
+
+kubectl apply -f nginx_scheduler.yaml
+
+And if we check, this will have been scheduled to worker-1 -
+
+kubectl get pods -o wide
+
+Cleanup
+Finally, we'll clean this up!
+
+kubectl delete pod/nginx --now; rm -rf simple-kubernetes-scheduler-example; rm -rf nginx_scheduler.yaml
+
