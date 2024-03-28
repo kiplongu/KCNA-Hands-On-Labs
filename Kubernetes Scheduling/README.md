@@ -66,3 +66,46 @@ kubectl get pods -o wide
 For now, let's clean this up -
 
 kubectl delete pod/nginx --now
+
+
+# Scheduling using nodeName
+An alternative way of scheduling is by directly specifying the nodeName in which to schedule the pod, firstly go back to the previous directory -
+
+cd ..
+
+Review the options for nodeName under pod.spec -
+
+kubectl explain pod.spec | more
+
+Update the yaml so that it directly specifies a nodeName of worker-2 -
+
+cat <<EOF > nginx_scheduler.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  nodeName: worker-2
+  containers:
+  - image: nginx
+    name: nginx
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+EOF
+
+And we will apply this file -
+
+kubectl apply -f nginx_scheduler.yaml
+
+Checking our pods again will show this scheduled to worker-2 -
+
+kubectl get pods -o wide
+
+For now, remove this pod -
+
+kubectl delete pod/nginx --now
