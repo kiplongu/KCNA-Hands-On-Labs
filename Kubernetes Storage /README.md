@@ -73,3 +73,70 @@ exit
 When we get rid of this container it will also remove the emptyDir volume -
 
 kubectl delete pod/ubuntu --now
+
+
+# Persistent Storage
+Let's take a look at the storageclasses available in our cluster, we will have a single storageclass and it will be marked as default -
+
+kubectl get storageclass
+
+Familiarise yourself with the storageclass specication, in particular the reclaimPolicy section -
+
+kubectl explain storageclass | more
+
+We'll create a persistent volume using the k3s storageClass of local-path -
+
+cat <<EOF > manual_pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: manual-pv001
+spec:
+  storageClassName: local-path
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/lib/rancher/k3s/storage/manual-pv001"
+    type: DirectoryOrCreate
+EOF
+
+And we will apply this file -
+
+kubectl apply -f manual_pv.yaml
+
+Check the available persistent volumes and note that the reclaim policy is set to Retain -
+
+kubectl get pv
+
+Let's now create a manual persistent volume claim against this persistent volume -
+
+cat <<EOF > manual_pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: manual-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+  volumeName: manual-pv001
+EOF
+
+Apply this file -
+
+kubectl apply -f manual_pvc.yaml
+
+And check the persistent volume claim -
+
+kubectl get persistentvolumeclaim
+
+This can also be done the short way -
+
+kubectl get pvc
+
