@@ -96,3 +96,116 @@ kubectl describe pod/nginx-1 | more
 
 kubectl describe pod/nginx-2 | more
 
+
+# StatefulSet Persistent Storage
+Update our statefulset to include a dynamic volume -
+
+cat <<EOF > statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  serviceName: nginx
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+        - name: nginx
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: nginx
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 1Gi
+EOF
+
+And we will recycle our statefulset -
+
+kubectl delete -f statefulset.yaml && kubectl apply -f statefulset.yaml
+
+Watch our pods start, press ctrl-c to exit -
+
+watch --differences kubectl get pods -o wide
+
+And we can verify that we have an individual pvc and pv for each pod -
+
+kubectl get pvc
+
+kubectl get pv
+
+We'll execute a shell into nginx-0 -
+
+kubectl exec -it nginx-0 -- bash
+
+Create some data -
+
+cd /data; touch this_is_nginx-0; ls -l
+
+And exit -
+
+exit
+
+Let's delete the pod and watch it be recreated -
+
+kubectl delete pod/nginx-0 --now; watch --differences kubectl get pods -o wide
+
+And if we execute a shell again -
+
+kubectl exec -it nginx-0 -- bash
+
+We can verify that our data still exists -
+
+ls /data
+
+Let's exit -
+
+exit
+
+And we can take this further, we can delete the entire statefulset -
+
+kubectl delete -f statefulset.yaml
+
+Our pvc and pv will still exist -
+
+kubectl get pvc; kubectl get pv
+
+And if we apply the statefulset again -
+
+kubectl apply -f statefulset.yaml
+
+Check our pods are running -
+
+kubectl get pods -o wide
+
+And exec back into the pod -
+
+kubectl exec -it nginx-0 -- bash
+
+And check our data, we can confirm that it is available as expected -
+
+ls /data
+
+Let's exit -
+
+exit
+
+And we'll cleanup -
+
+kubectl delete statefulset/nginx --now; for i in 0 1 2; do kubectl delete pvc/nginx-nginx-$i --now; done; kubectl delete service/nginx; rm statefulset.yaml
+
